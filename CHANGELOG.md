@@ -3,6 +3,7 @@
 ## 6.0.0
 ### Changed
 
+- Fork from `@digitalcredentials/ed25519-verification-key-2020@5.0.0` to `@interop/`.
 - Update @noble/ed25519 ^1.7.5 to ^3.1.0 in dependencies
 - src/ed25519-browser.ts: Switch to signAsync/verifyAsync/getPublicKeyAsync, configured hashes.sha512Async via crypto.subtle
 - src/ed25519-reactnative.ts: Replace @stablelib/ed25519 with @noble/ed25519 + @noble/hashes (sha512 sync+async, sha256 for sha256digest)
