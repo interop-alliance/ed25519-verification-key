@@ -1,9 +1,9 @@
 # Ed25519VerificationKey2020 Key Pair Library for Linked Data _(@interop/ed25519-verification-key-2020)_
 
-[![Node.js CI](https://github.com/interop-alliance/ed25519-verification-key-2020/workflows/Node.js%20CI/badge.svg)](https://github.com/interop-alliance/ed25519-verification-key-2020/actions?query=workflow%3A%22Node.js+CI%22)
+[![Node.js CI](https://github.com/interop-alliance/ed25519-verification-key-2020/workflows/CI/badge.svg)](https://github.com/interop-alliance/ed25519-verification-key-2020/actions?query=workflow%3A%22CI%22)
 [![NPM Version](https://img.shields.io/npm/v/@interop/ed25519-verification-key-2020.svg)](https://npm.im/@interop/ed25519-verification-key-2020)
 
-> Typescript/Javascript library for generating and working with Ed25519VerificationKey2020 key pairs, for use with crypto-ld.
+> Typescript/Javascript library for generating and working with Ed25519VerificationKey2020 key pairs, for Node.js, browser and React Native.
 
 ## Table of Contents
 
