@@ -2,11 +2,16 @@
  * Copyright (c) 2020 Digital Bazaar, Inc. All rights reserved.
  */
 import { describe, it, expect } from 'vitest'
-import { base58btc } from '../../src/baseX.js'
+import * as jose from 'jose'
+import { base58btc, base64url } from '../../src/baseX.js'
 import { mockKey, seed, suites } from './mock-data.js'
 import * as multibase from 'multibase'
 import * as multicodec from 'multicodec'
 import { Ed25519VerificationKey2020 } from '../../src/index.js'
+
+function bytesToHex(bytes: Uint8Array): string {
+  return [...bytes].map(byte => byte.toString(16).padStart(2, '0')).join('')
+}
 
 // multibase base58-btc header
 const MULTIBASE_BASE58BTC_HEADER = 'z'
@@ -462,6 +467,58 @@ describe('Ed25519VerificationKey2020', () => {
       expect(key.id).toBe('urn:id:1#0')
       expect(key.controller).toBe('urn:id:1')
       expect(key.toJwk({ publicKey: true })).toEqual(publicKeyJwk)
+    })
+
+    // Known-answer test pinning RFC 4648 base64url compliance. A
+    // non-compliant codec (e.g. a big-number radix conversion) decodes this
+    // vector to different -- even differently-lengthed -- bytes, so JWKs would
+    // not interoperate with standard JOSE/JWK consumers.
+    it('decodes the RFC 8037 A.2 public key vector to the exact bytes', () => {
+      // x and its raw public key from RFC 8037 Appendix A.2; this is also the
+      // canonical did:key Ed25519 example.
+      const rfcX = '11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo'
+      const rfcPublicKeyHex =
+        'd75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a'
+
+      const decoded = base64url.decode(rfcX)
+      expect(decoded.length).toBe(32)
+      expect(bytesToHex(decoded)).toBe(rfcPublicKeyHex)
+      // re-encoding the bytes reproduces the exact RFC string
+      expect(base64url.encode(decoded)).toBe(rfcX)
+    })
+
+    it('imports the RFC 8037 vector to the canonical did:key multibase', async () => {
+      const rfcX = '11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo'
+      const expectedMultibase =
+        'z6MktwupdmLXVVqTzCw4i46r4uGyosGXRnR3XjN4Zq7oMMsw'
+      const key = await Ed25519VerificationKey2020.from({
+        type: 'JsonWebKey2020',
+        controller: 'did:example:123',
+        publicKeyJwk: { kty: 'OKP', crv: 'Ed25519', x: rfcX }
+      })
+      expect(key.publicKeyMultibase).toBe(expectedMultibase)
+      expect(key.toJwk({ publicKey: true }).x).toBe(rfcX)
+    })
+
+    it('exports a JWK whose key bytes agree with jose (cross-library)', async () => {
+      // Generate a key, export its JWK, and confirm jose decodes the same
+      // public key bytes -- this is the interop a self-consistent but
+      // non-standard codec silently breaks.
+      const key = await Ed25519VerificationKey2020.generate()
+      const exportedJwk = key.toJwk({ publicKey: true, privateKey: true })
+
+      const josePublicJwk = await jose.exportJWK(
+        await jose.importJWK({ ...exportedJwk }, 'EdDSA')
+      )
+      expect(josePublicJwk.x).toBe(exportedJwk.x)
+      expect(josePublicJwk.d).toBe(exportedJwk.d)
+
+      // the JWK `x` must be the true public key bytes (multibase minus header)
+      const decodedX = base64url.decode(exportedJwk.x as string)
+      const multibaseBytes = base58btc.decode(
+        (key.publicKeyMultibase as string).slice(1)
+      )
+      expect(bytesToHex(decodedX)).toBe(bytesToHex(multibaseBytes.slice(2)))
     })
 
     it('round-trips through JsonWebKey2020 serialization', async () => {

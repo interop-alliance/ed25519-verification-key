@@ -12,6 +12,12 @@
   - Added unit tests from `@digitalbazaar/ed25519-multikey`.
   - Fixed JWK-related tests.
 
+### Changed
+- **BREAKING**: Replaced usage of `base-x` for `base64url` encoding with
+  `@scure/base` library (same author as the `@noble` library we use). Base-x's
+  implementation is not compatible with the `base64url` standard, and was
+  leading to incompatibilities reading and writing JWKs.
+
 ## 6.0.0-6.0.1 - 2026-05-24
 ### Changed
 
