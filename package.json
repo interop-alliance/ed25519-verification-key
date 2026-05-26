@@ -53,11 +53,11 @@
     "./dist/ed25519.js": "./dist/ed25519-reactnative.js"
   },
   "dependencies": {
-    "@digitalcredentials/ssi": "^5.4.2",
     "@digitalcredentials/keypair": "^3.0.0",
+    "@digitalcredentials/ssi": "^5.4.2",
     "@noble/ed25519": "^3.1.0",
     "@noble/hashes": "^2.2.0",
-    "base-x": "^5.0.1"
+    "@scure/base": "^2.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

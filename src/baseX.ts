@@ -1,8 +1,9 @@
-import baseX from 'base-x'
+import { base58, base64urlnopad } from '@scure/base'
 
-const BASE58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
-export const base58btc = baseX(BASE58)
+export const base58btc = base58
 
-const BASE64URL =
-  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
-export const base64url = baseX(BASE64URL)
+/**
+ * base64url must be RFC 4648 compliant for JWK interop, and JWK uses the
+ * unpadded form, hence `base64urlnopad`.
+ */
+export const base64url = base64urlnopad
