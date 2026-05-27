@@ -1,6 +1,6 @@
 # @interop/ed25519-verification-key ChangeLog
 
-## 6.2.0 -
+## 6.2.0 - 2026-05-27
 ### Add
 - Add `multibaseHeader` static property to `Ed25519VerificationKey` class.
   For use downstream by `@interop/did-io` and `@interop/did-method-key` drivers,
