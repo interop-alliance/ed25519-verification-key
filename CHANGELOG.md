@@ -1,6 +1,6 @@
 # @interop/ed25519-verification-key ChangeLog
 
-## 7.0.0 -
+## 7.0.0 - 2026-05-31
 ### Changed
 - **BREAKING**: Drop support for `JsonWebKey2020`, switch to CID's `JsonWebKey` only.
 - Switch type imports from `@digitalcredentials/keypair` and
