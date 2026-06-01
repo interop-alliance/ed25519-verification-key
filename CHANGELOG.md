@@ -1,6 +1,6 @@
 # @interop/ed25519-verification-key ChangeLog
 
-## 7.0.1 - TBD
+## 7.0.1 - 2026-06-01
 ### Fixed
 - `fromKeyDocument()` now accepts a verification method document that carries
   either the `Ed25519VerificationKey2020` suite context or the Multikey context
