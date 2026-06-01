@@ -8,6 +8,7 @@ import {
   type IJsonWebKeyDocument,
   type IJsonWebPublicKey,
   type IKeyPair,
+  type IKeyPairCore,
   type IMultikeyDocument,
   type IMultikeyPair,
   type IOkpPublicJwk,
@@ -39,6 +40,17 @@ const MULTIBASE_MULTIKEY_PREFIX = 'z6Mk'
 export class Ed25519VerificationKey extends AbstractKeyPair {
   static SUITE_CONTEXT: string =
     'https://w3id.org/security/suites/ed25519-2020/v1'
+
+  /**
+   * The `@context` URLs that `fromKeyDocument` accepts: the
+   * Ed25519VerificationKey2020 suite context and the Multikey context. A key
+   * exported via `export()` carries the Multikey context, so both must be
+   * recognized when re-importing a dereferenced verification method.
+   */
+  static SUITE_CONTEXTS: string[] = [
+    'https://w3id.org/security/suites/ed25519-2020/v1',
+    MULTIKEY_CONTEXT_V1_URL
+  ]
 
   static suite: string = SUITE_ID
   // Used by `@interop/did-io` and `@interop/did-method-key` drivers
@@ -104,6 +116,52 @@ export class Ed25519VerificationKey extends AbstractKeyPair {
     if (controller && this.controller && !this.id) {
       this.id = `${this.controller}#${this.fingerprint()}`
     }
+  }
+
+  /**
+   * Imports a key pair from an externally fetched verification method document,
+   * optionally checking it for revocation and a recognized `@context`.
+   *
+   * Overrides the base implementation so that either the
+   * Ed25519VerificationKey2020 suite context or the Multikey context (which
+   * `export()` emits) satisfies the context check.
+   *
+   * @param options {object} - Options hashmap.
+   * @param options.document {IKeyPairCore} - Externally fetched key document.
+   * @param [options.checkContext=true] {boolean} - Whether to require a
+   *   recognized `@context` on the document.
+   * @param [options.checkRevoked=true] {boolean} - Whether to throw if the
+   *   document carries a `revoked` timestamp.
+   *
+   * @returns {Promise<Ed25519VerificationKey>} An Ed25519 Key Pair.
+   */
+  static async fromKeyDocument({
+    document,
+    checkContext = true,
+    checkRevoked = true
+  }: {
+    document: IKeyPairCore
+    checkContext?: boolean
+    checkRevoked?: boolean
+  }): Promise<Ed25519VerificationKey> {
+    if (checkContext) {
+      const documentContexts = Array.isArray(document['@context'])
+        ? document['@context']
+        : [document['@context']]
+      const hasSuiteContext = Ed25519VerificationKey.SUITE_CONTEXTS.some(
+        suiteContext => documentContexts.includes(suiteContext)
+      )
+      if (!hasSuiteContext) {
+        throw new Error(
+          'Key document does not contain a required context, one of: ' +
+            `"${Ed25519VerificationKey.SUITE_CONTEXTS.join('", "')}".`
+        )
+      }
+    }
+    if (checkRevoked && (document.revoked ?? '') !== '') {
+      throw new Error(`Key has been revoked since: "${document.revoked ?? ''}".`)
+    }
+    return Ed25519VerificationKey.from(document as IKeyPair | IPublicKey)
   }
 
   /**

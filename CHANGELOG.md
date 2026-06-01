@@ -1,5 +1,12 @@
 # @interop/ed25519-verification-key ChangeLog
 
+## 7.0.1 - TBD
+### Fixed
+- `fromKeyDocument()` now accepts a verification method document that carries
+  either the `Ed25519VerificationKey2020` suite context or the Multikey context
+  (the context emitted by `export()`), instead of only the suite context. Adds
+  a `SUITE_CONTEXTS` static listing both accepted contexts.
+
 ## 7.0.0 - 2026-05-31
 ### Changed
 - **BREAKING**: Drop support for `JsonWebKey2020`, switch to CID's `JsonWebKey` only.

@@ -290,6 +290,61 @@ describe('Ed25519VerificationKey', () => {
     })
   })
 
+  describe('static fromKeyDocument', () => {
+    it('accepts a document with the Multikey context', async () => {
+      const keyPair = await Ed25519VerificationKey.generate({
+        controller: 'did:example:multikey-ctx'
+      })
+      const document = keyPair.export({ publicKey: true, includeContext: true })
+      expect(document['@context']).toBe(
+        'https://w3id.org/security/multikey/v1'
+      )
+
+      const imported = await Ed25519VerificationKey.fromKeyDocument({ document })
+      expect(imported.publicKeyMultibase).toBe(keyPair.publicKeyMultibase)
+    })
+
+    it('accepts a document with the ed25519-2020 suite context', async () => {
+      const keyPair = await Ed25519VerificationKey.generate({
+        controller: 'did:example:suite-ctx'
+      })
+      const document = keyPair.toVerificationKey2020({
+        publicKey: true,
+        includeContext: true
+      })
+      expect(document['@context']).toBe(
+        'https://w3id.org/security/suites/ed25519-2020/v1'
+      )
+
+      const imported = await Ed25519VerificationKey.fromKeyDocument({ document })
+      expect(imported.publicKeyMultibase).toBe(keyPair.publicKeyMultibase)
+    })
+
+    it('throws if the document has no recognized context', async () => {
+      const keyPair = await Ed25519VerificationKey.generate({
+        controller: 'did:example:no-ctx'
+      })
+      const document = keyPair.export({ publicKey: true, includeContext: true })
+      document['@context'] = 'https://example.com/unknown/v1'
+
+      await expect(
+        Ed25519VerificationKey.fromKeyDocument({ document })
+      ).rejects.toThrow('does not contain a required context')
+    })
+
+    it('throws if the key has been revoked', async () => {
+      const keyPair = await Ed25519VerificationKey.generate({
+        controller: 'did:example:revoked'
+      })
+      const document = keyPair.export({ publicKey: true, includeContext: true })
+      document.revoked = '2020-12-17T05:00:00Z'
+
+      await expect(
+        Ed25519VerificationKey.fromKeyDocument({ document })
+      ).rejects.toThrow('Key has been revoked since: "2020-12-17T05:00:00Z"')
+    })
+  })
+
   describe('sign and verify', () => {
     // The same Ed25519 signature must be produced on every platform and by
     // every interoperable implementation (this value is byte-identical to the
