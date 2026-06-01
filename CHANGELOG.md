@@ -1,5 +1,11 @@
 # @interop/ed25519-verification-key ChangeLog
 
+## 7.0.0 -
+### Changed
+- **BREAKING**: Drop support for `JsonWebKey2020`, switch to CID's `JsonWebKey` only.
+- Switch type imports from `@digitalcredentials/keypair` and
+  `@digitalcredentials/ssi` to `@interop/data-integrity-core`.
+
 ## 6.2.0 - 2026-05-27
 ### Add
 - Add `multibaseHeader` static property to `Ed25519VerificationKey` class.

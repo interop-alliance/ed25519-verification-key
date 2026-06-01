@@ -2,18 +2,24 @@
  * Copyright (c) 2025 Digital Credentials Consortium (Typescript conversion).
  * Copyright (c) 2021 Digital Bazaar, Inc. All rights reserved.
  */
-import { type IVerificationResult, KeyPair } from '@digitalcredentials/keypair'
-import type {
-  IJsonWebKey,
-  IJsonWebKeyPair2020,
-  IJsonWebPublicKey,
-  IKeyPairCore,
-  IMultikeyPair,
-  ISigner,
-  IVerificationKeyPair2018,
-  IVerificationKeyPair2020,
-  IVerifier
-} from '@digitalcredentials/ssi'
+import {
+  AbstractKeyPair,
+  type GenerateKeyPairOptions,
+  type IJsonWebKeyDocument,
+  type IJsonWebPublicKey,
+  type IKeyPair,
+  type IMultikeyDocument,
+  type IMultikeyPair,
+  type IOkpPublicJwk,
+  type IOkpSecretJwk,
+  type IPublicKey,
+  type IPublicMultikey,
+  type ISigner,
+  type IVerificationKeyPair2018,
+  type IVerificationKeyPair2020,
+  type IVerificationResult,
+  type IVerifier
+} from '@interop/data-integrity-core'
 
 import { base58btc, base64url } from './baseX.js'
 import ed25519 from './ed25519.js'
@@ -30,16 +36,10 @@ const MULTIKEY_CONTEXT_V1_URL = 'https://w3id.org/security/multikey/v1'
 // for ed25519 keys, @see https://www.w3.org/TR/cid-1.0/#Multikey
 const MULTIBASE_MULTIKEY_PREFIX = 'z6Mk'
 
-export interface GenerateKeyPairOptions extends IKeyPairCore {
-  seed?: Uint8Array
-}
-
-export class Ed25519VerificationKey extends KeyPair {
-  // Used by CryptoLD harness's fromKeyId() method.
+export class Ed25519VerificationKey extends AbstractKeyPair {
   static SUITE_CONTEXT: string =
     'https://w3id.org/security/suites/ed25519-2020/v1'
 
-  // Used by CryptoLD harness for dispatching.
   static suite: string = SUITE_ID
   // Used by `@interop/did-io` and `@interop/did-method-key` drivers
   //   for registering supported methods via `use()`
@@ -121,22 +121,22 @@ export class Ed25519VerificationKey extends KeyPair {
    * @returns {Promise<Ed25519VerificationKey>} An Ed25519 Key Pair.
    */
   static async from(
-    options: IVerificationKeyPair2020 | IJsonWebKeyPair2020 | IMultikeyPair
+    options: IKeyPair | IPublicKey
   ): Promise<Ed25519VerificationKey> {
     if (options.type === 'Multikey') {
-      return Ed25519VerificationKey.fromMultikey(options as IMultikeyPair)
+      return Ed25519VerificationKey.fromMultikey(options as IMultikeyDocument)
     }
     if (options.type === 'Ed25519VerificationKey2018') {
       return Ed25519VerificationKey.fromEd25519VerificationKey2018({
-        keyPair: options
+        keyPair: options as IVerificationKeyPair2018
       })
     }
-    if (options.type === 'JsonWebKey2020') {
-      return Ed25519VerificationKey.fromJsonWebKey2020(
-        options as IJsonWebKeyPair2020
+    if (options.type === 'JsonWebKey') {
+      return Ed25519VerificationKey.fromJsonWebKey(
+        options as IJsonWebKeyDocument
       )
     }
-    return new Ed25519VerificationKey(options)
+    return new Ed25519VerificationKey(options as IVerificationKeyPair2020)
   }
 
   /**
@@ -144,7 +144,7 @@ export class Ed25519VerificationKey extends KeyPair {
    *
    * @see https://www.w3.org/TR/cid-1.0/#Multikey
    *
-   * @param options {IMultikeyPair} - A Multikey-typed key document.
+   * @param options {IMultikeyDocument} - A Multikey-typed key document.
    * @param [options.id] {string}
    * @param [options.controller] {string}
    * @param [options.publicKeyMultibase] {string}
@@ -153,16 +153,8 @@ export class Ed25519VerificationKey extends KeyPair {
    *
    * @returns {Ed25519VerificationKey}
    */
-  static fromMultikey({
-    id,
-    controller,
-    publicKeyMultibase,
-    secretKeyMultibase,
-    revoked
-  }: IMultikeyPair): Ed25519VerificationKey {
-    if (!publicKeyMultibase) {
-      throw new TypeError('"publicKeyMultibase" property is required.')
-    }
+  static fromMultikey(options: IMultikeyDocument): Ed25519VerificationKey {
+    const { id, controller, publicKeyMultibase, revoked } = options
     if (!_isValidKeyHeader(publicKeyMultibase, MULTICODEC_ED25519_PUB_HEADER)) {
       throw new TypeError(
         '"publicKeyMultibase" has invalid header bytes: ' +
@@ -171,7 +163,8 @@ export class Ed25519VerificationKey extends KeyPair {
     }
 
     let privateKeyMultibase: string | undefined
-    if (secretKeyMultibase) {
+    if ('secretKeyMultibase' in options) {
+      const { secretKeyMultibase } = options
       if (!_isValidKeyHeader(secretKeyMultibase, MULTICODEC_ED25519_PRIV_HEADER)) {
         throw new Error('"secretKeyMultibase" has invalid header bytes.')
       }
@@ -247,41 +240,33 @@ export class Ed25519VerificationKey extends KeyPair {
   }
 
   /**
-   * Creates a key pair instance (public key only) from a JsonWebKey2020
-   * object.
+   * Creates a key pair instance from a CID-spec `JsonWebKey` document.
+   * Accepts a public-only verification method (`IJsonWebPublicKey`) -- the
+   * common case for DID document VMs -- or a full pair (`IJsonWebKeyPair`,
+   * which adds `secretKeyJwk`).
    *
-   * @see https://w3c-ccg.github.io/lds-jws2020/#json-web-key-2020
+   * @see https://www.w3.org/TR/cid-1.0/#JsonWebKey
    *
-   * @param {object} options - Options hashmap.
-   * @param {string} options.id - Key id.
-   * @param {string} options.type - Key suite type.
-   * @param {string} options.controller - Key controller.
-   * @param {object} options.publicKeyJwk - JWK object.
+   * @param options {IJsonWebKeyDocument} - A `type: 'JsonWebKey'` document.
    *
    * @returns {Promise<Ed25519VerificationKey>} Resolves with key pair.
    */
-  static async fromJsonWebKey2020({
-    id,
-    type,
-    controller,
-    publicKeyJwk,
-    privateKeyJwk
-  }: IJsonWebKeyPair2020): Promise<Ed25519VerificationKey> {
-    if (type !== 'JsonWebKey2020') {
+  static async fromJsonWebKey(
+    options: IJsonWebKeyDocument
+  ): Promise<Ed25519VerificationKey> {
+    const { id, type, controller, publicKeyJwk } = options
+    if (type !== 'JsonWebKey') {
       throw new TypeError(`Invalid key type: "${type}".`)
     }
-    if (!publicKeyJwk) {
-      throw new TypeError('"publicKeyJwk" property is required.')
+    // narrow publicKeyJwk (IPublicJwk = IEcPublicJwk | IOkpPublicJwk |
+    // IRsaPublicJwk) to IOkpPublicJwk via kty/crv checks
+    if (publicKeyJwk.kty !== 'OKP') {
+      throw new TypeError('publicKeyJwk "kty" is required to be "OKP".')
     }
-    const { kty, crv } = publicKeyJwk
-    if (kty !== 'OKP') {
-      throw new TypeError('"kty" is required to be "OKP".')
+    if (publicKeyJwk.crv !== 'Ed25519') {
+      throw new TypeError('publicKeyJwk "crv" is required to be "Ed25519".')
     }
-    if (crv !== 'Ed25519') {
-      throw new TypeError('"crv" is required to be "Ed25519".')
-    }
-    const { x: publicKeyBase64Url } = publicKeyJwk
-    const publicKeyBytes = base64url.decode(publicKeyBase64Url as string)
+    const publicKeyBytes = base64url.decode(publicKeyJwk.x)
     const publicKeyMultibase = _encodeMbKey(
       MULTICODEC_ED25519_PUB_HEADER,
       publicKeyBytes
@@ -292,9 +277,16 @@ export class Ed25519VerificationKey extends KeyPair {
       controller,
       publicKeyMultibase
     }
-    if (privateKeyJwk) {
-      const { d: privateKeyBase64Url } = privateKeyJwk
-      const privateKeyBytes = base64url.decode(privateKeyBase64Url as string)
+    if ('secretKeyJwk' in options) {
+      // narrow ISecretJwk to IOkpSecretJwk
+      const { secretKeyJwk } = options
+      if (secretKeyJwk.kty !== 'OKP') {
+        throw new TypeError('secretKeyJwk "kty" is required to be "OKP".')
+      }
+      if (secretKeyJwk.crv !== 'Ed25519') {
+        throw new TypeError('secretKeyJwk "crv" is required to be "Ed25519".')
+      }
+      const privateKeyBytes = base64url.decode(secretKeyJwk.d)
 
       // Concat the private and public key bytes
       const combinedPrivatePublicBytes = new Uint8Array(
@@ -419,18 +411,35 @@ export class Ed25519VerificationKey extends KeyPair {
   /**
    * Exports this key pair as a Multikey (the default serialization).
    *
+   * Per the Multikey spec, `publicKeyMultibase` is always emitted -- the
+   * `publicKey` option is accepted for backwards-compat with callers that
+   * still pass it, but the field is included regardless.
+   *
    * @param {object} [options={}] - Options hashmap.
-   * @param {boolean} [options.publicKey] - Export public key material?
-   * @param {boolean} [options.secretKey] - Export secret key material?
+   * @param {boolean} [options.publicKey] - Accepted but ignored;
+   *   `publicKeyMultibase` is always included.
+   * @param {boolean} [options.secretKey] - Export secret key material too?
    * @param {boolean} [options.includeContext] - Include JSON-LD context?
    * @param {boolean} [options.canonicalize] - Emit the canonical 32-byte seed
    *   as `secretKeyMultibase` instead of the 64-byte `seed||pub` legacy form.
    *   Defaults to `false` to match `@digitalbazaar/ed25519-multikey`.
    *
-   * @returns {IMultikeyPair} A plain js object ready for serialization.
+   * @returns {IMultikeyDocument} `IPublicMultikey` (default) or
+   *   `IMultikeyPair` (when `secretKey: true`).
    */
+  export(options: {
+    publicKey?: boolean
+    secretKey: true
+    includeContext?: boolean
+    canonicalize?: boolean
+  }): IMultikeyPair
+  export(options?: {
+    publicKey?: boolean
+    secretKey?: false
+    includeContext?: boolean
+    canonicalize?: boolean
+  }): IPublicMultikey
   export({
-    publicKey = true,
     secretKey = false,
     includeContext = true,
     canonicalize = false
@@ -439,25 +448,24 @@ export class Ed25519VerificationKey extends KeyPair {
     secretKey?: boolean
     includeContext?: boolean
     canonicalize?: boolean
-  } = {}): IMultikeyPair {
-    if (!(publicKey || secretKey)) {
-      throw new TypeError(
-        'Export requires specifying either "publicKey" or "secretKey".'
-      )
+  } = {}): IMultikeyDocument {
+    const publicShape: IPublicMultikey = {
+      type: 'Multikey',
+      publicKeyMultibase: this.publicKeyMultibase
     }
-    const exportedKey: IMultikeyPair = {
-      id: this.id,
-      type: 'Multikey'
+    if (this.id != null) {
+      publicShape.id = this.id
     }
     if (includeContext) {
-      exportedKey['@context'] = MULTIKEY_CONTEXT_V1_URL
+      publicShape['@context'] = MULTIKEY_CONTEXT_V1_URL
     }
     if (this.controller) {
-      exportedKey.controller = this.controller
+      publicShape.controller = this.controller
     }
-    if (publicKey) {
-      exportedKey.publicKeyMultibase = this.publicKeyMultibase
+    if (this.revoked) {
+      publicShape.revoked = this.revoked
     }
+
     if (secretKey && this._privateKeyBuffer) {
       // By default, emit the 64-byte `seed||pub` legacy form (matching
       // `@digitalbazaar/ed25519-multikey`). When `canonicalize` is true, emit
@@ -465,15 +473,15 @@ export class Ed25519VerificationKey extends KeyPair {
       const secretBytes = canonicalize
         ? this._privateKeyBuffer.slice(0, 32)
         : this._privateKeyBuffer
-      exportedKey.secretKeyMultibase = _encodeMbKey(
-        MULTICODEC_ED25519_PRIV_HEADER,
-        secretBytes
-      )
+      return {
+        ...publicShape,
+        secretKeyMultibase: _encodeMbKey(
+          MULTICODEC_ED25519_PRIV_HEADER,
+          secretBytes
+        )
+      } satisfies IMultikeyPair
     }
-    if (this.revoked) {
-      exportedKey.revoked = this.revoked
-    }
-    return exportedKey
+    return publicShape
   }
 
   /**
@@ -585,32 +593,40 @@ export class Ed25519VerificationKey extends KeyPair {
    * @returns {{kty: string, crv: string, x: string, d: string}} JWK
    *   representation.
    */
+  toJwk(options: {
+    publicKey?: boolean
+    privateKey: true
+  }): IOkpSecretJwk
+  toJwk(options?: {
+    publicKey?: boolean
+    privateKey?: false
+  }): IOkpPublicJwk
   toJwk({
     publicKey = true,
     privateKey = false
   }: { publicKey?: boolean; privateKey?: boolean } = {}):
-      IJsonWebKey {
+      IOkpPublicJwk | IOkpSecretJwk {
     if (!(publicKey || privateKey)) {
       throw new TypeError('Either a "publicKey" or a "privateKey" is required.')
     }
     if (!this._publicKeyBuffer) {
       throw new TypeError('Public key buffer is not set.')
     }
-    const jwk: IJsonWebKey = { crv: 'Ed25519', kty: 'OKP' }
-    if (publicKey && this._publicKeyBuffer) {
-      jwk.x = base64url.encode(this._publicKeyBuffer)
-    }
+    // RFC 8037 requires `x` in every Ed25519 JWK, including secret-form, so
+    // we emit it regardless of the `publicKey` flag.
+    const x = base64url.encode(this._publicKeyBuffer)
     if (privateKey && this._privateKeyBuffer) {
       // the private key buffer is a concatenation of <priv key bytes><pub key bytes>
       // however, the JWK wants just the private key
-      jwk.d = base64url.encode(
+      const d = base64url.encode(
         this._privateKeyBuffer.slice(
           0,
           this._privateKeyBuffer.length - this._publicKeyBuffer.length
         )
       )
+      return { kty: 'OKP', crv: 'Ed25519', x, d } satisfies IOkpSecretJwk
     }
-    return jwk
+    return { kty: 'OKP', crv: 'Ed25519', x } satisfies IOkpPublicJwk
   }
 
   /**
@@ -629,16 +645,17 @@ export class Ed25519VerificationKey extends KeyPair {
   }
 
   /**
-   * Returns the JsonWebKey2020 representation of this key pair.
+   * Returns the CID-spec `JsonWebKey` verification-method representation of
+   * this key pair (public material only).
    *
-   * @see https://w3c-ccg.github.io/lds-jws2020/#json-web-key-2020
+   * @see https://www.w3.org/TR/cid-1.0/#JsonWebKey
    *
-   * @returns {Promise<object>} JsonWebKey2020 representation.
+   * @returns {Promise<IJsonWebPublicKey>} JsonWebKey verification method.
    */
-  async toJsonWebKey2020(): Promise<IJsonWebPublicKey> {
-    const serialized: IJsonWebKeyPair2020 = {
-      '@context': 'https://w3id.org/security/jws/v1',
-      type: 'JsonWebKey2020',
+  async toJsonWebKey(): Promise<IJsonWebPublicKey> {
+    const serialized: IJsonWebPublicKey = {
+      '@context': 'https://www.w3.org/ns/cid/v1',
+      type: 'JsonWebKey',
       publicKeyJwk: this.toJwk({ publicKey: true })
     }
     if (this.controller) {

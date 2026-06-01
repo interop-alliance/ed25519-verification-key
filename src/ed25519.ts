@@ -17,7 +17,7 @@ if (typeof crypto.getRandomValues === 'undefined') {
 }
 
 // used to export node's public keys to buffers
-const publicKeyEncoding: KeyExportOptions<any> = {
+const publicKeyEncoding: KeyExportOptions = {
   format: 'der',
   type: 'spki'
 }
