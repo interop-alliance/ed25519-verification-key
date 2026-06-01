@@ -7,6 +7,10 @@ import { base58btc, base64url } from '../../src/baseX.js'
 import { mockKey, seed, suites } from './mock-data.js'
 import * as multibase from 'multibase'
 import * as multicodec from 'multicodec'
+import type {
+  IOkpPublicJwk,
+  IOkpSecretJwk
+} from '@interop/data-integrity-core'
 import { Ed25519VerificationKey } from '../../src/index.js'
 
 function bytesToHex(bytes: Uint8Array): string {
@@ -278,7 +282,7 @@ describe('Ed25519VerificationKey', () => {
         controller: 'did:example:pubonly'
       })
       const publicOnlyMultikey = keyPair.export({ publicKey: true })
-      expect(publicOnlyMultikey.secretKeyMultibase).toBeUndefined()
+      expect('secretKeyMultibase' in publicOnlyMultikey).toBe(false)
 
       const imported = await Ed25519VerificationKey.from(publicOnlyMultikey)
       expect(imported.publicKeyMultibase).toBe(keyPair.publicKeyMultibase)
@@ -444,33 +448,63 @@ describe('Ed25519VerificationKey', () => {
     })
   })
 
-  describe('JsonWebKey2020', () => {
-    // Shared fixture from @digitalbazaar/ed25519-multikey's JWK tests.
-    const publicKeyJwk = {
+  describe('JsonWebKey', () => {
+    // RFC 8037 Appendix A.2 vector -- includes both `x` (public) and `d`
+    // (private seed). Also the canonical did:key Ed25519 example.
+    const rfcPublicKeyJwk: IOkpPublicJwk = {
       kty: 'OKP',
       crv: 'Ed25519',
       x: '11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo'
     }
+    const rfcSecretKeyJwk: IOkpSecretJwk = {
+      kty: 'OKP',
+      crv: 'Ed25519',
+      x: rfcPublicKeyJwk.x,
+      d: 'nWGxne_9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A'
+    }
 
-    it('round-trips publicKeyJwk through from() and toJwk()', async () => {
+    it('round-trips a public-only JWK VM through from() and toJwk()', async () => {
       const key = await Ed25519VerificationKey.from({
-        type: 'JsonWebKey2020',
+        type: 'JsonWebKey',
         controller: 'did:example:123',
-        publicKeyJwk
+        publicKeyJwk: rfcPublicKeyJwk
       })
-      expect(key.toJwk({ publicKey: true })).toEqual(publicKeyJwk)
+      expect(key.toJwk({ publicKey: true })).toEqual(rfcPublicKeyJwk)
     })
 
-    it('preserves id and controller when importing publicKeyJwk', async () => {
+    it('round-trips a full-pair JWK through from() and toJwk()', async () => {
       const key = await Ed25519VerificationKey.from({
-        type: 'JsonWebKey2020',
+        type: 'JsonWebKey',
+        controller: 'did:example:123',
+        publicKeyJwk: rfcPublicKeyJwk,
+        secretKeyJwk: rfcSecretKeyJwk
+      })
+      expect(key.toJwk({ publicKey: true })).toEqual(rfcPublicKeyJwk)
+      expect(key.toJwk({ publicKey: true, privateKey: true }))
+        .toEqual(rfcSecretKeyJwk)
+    })
+
+    it('preserves id and controller when importing a JWK', async () => {
+      const key = await Ed25519VerificationKey.from({
+        type: 'JsonWebKey',
         id: 'urn:id:1#0',
         controller: 'urn:id:1',
-        publicKeyJwk
+        publicKeyJwk: rfcPublicKeyJwk
       })
       expect(key.id).toBe('urn:id:1#0')
       expect(key.controller).toBe('urn:id:1')
-      expect(key.toJwk({ publicKey: true })).toEqual(publicKeyJwk)
+      expect(key.toJwk({ publicKey: true })).toEqual(rfcPublicKeyJwk)
+    })
+
+    it('round-trips a JsonWebKey VM through toJsonWebKey() and from()', async () => {
+      const key = await Ed25519VerificationKey.from({
+        type: 'JsonWebKey',
+        controller: 'did:example:123',
+        publicKeyJwk: rfcPublicKeyJwk
+      })
+      const exported = await key.toJsonWebKey()
+      const reimported = await Ed25519VerificationKey.from(exported)
+      expect(await reimported.toJsonWebKey()).toEqual(exported)
     })
 
     // Known-answer test pinning RFC 4648 base64url compliance. A
@@ -478,30 +512,27 @@ describe('Ed25519VerificationKey', () => {
     // vector to different -- even differently-lengthed -- bytes, so JWKs would
     // not interoperate with standard JOSE/JWK consumers.
     it('decodes the RFC 8037 A.2 public key vector to the exact bytes', () => {
-      // x and its raw public key from RFC 8037 Appendix A.2; this is also the
-      // canonical did:key Ed25519 example.
-      const rfcX = '11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo'
       const rfcPublicKeyHex =
         'd75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a'
 
-      const decoded = base64url.decode(rfcX)
+      const decoded = base64url.decode(rfcPublicKeyJwk.x)
       expect(decoded.length).toBe(32)
       expect(bytesToHex(decoded)).toBe(rfcPublicKeyHex)
       // re-encoding the bytes reproduces the exact RFC string
-      expect(base64url.encode(decoded)).toBe(rfcX)
+      expect(base64url.encode(decoded)).toBe(rfcPublicKeyJwk.x)
     })
 
     it('imports the RFC 8037 vector to the canonical did:key multibase', async () => {
-      const rfcX = '11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo'
       const expectedMultibase =
         'z6MktwupdmLXVVqTzCw4i46r4uGyosGXRnR3XjN4Zq7oMMsw'
       const key = await Ed25519VerificationKey.from({
-        type: 'JsonWebKey2020',
+        type: 'JsonWebKey',
         controller: 'did:example:123',
-        publicKeyJwk: { kty: 'OKP', crv: 'Ed25519', x: rfcX }
+        publicKeyJwk: rfcPublicKeyJwk,
+        secretKeyJwk: rfcSecretKeyJwk
       })
       expect(key.publicKeyMultibase).toBe(expectedMultibase)
-      expect(key.toJwk({ publicKey: true }).x).toBe(rfcX)
+      expect(key.toJwk({ publicKey: true }).x).toBe(rfcPublicKeyJwk.x)
     })
 
     it('exports a JWK whose key bytes agree with jose (cross-library)', async () => {
@@ -512,29 +543,31 @@ describe('Ed25519VerificationKey', () => {
       const exportedJwk = key.toJwk({ publicKey: true, privateKey: true })
 
       const josePublicJwk = await jose.exportJWK(
-        await jose.importJWK({ ...exportedJwk }, 'EdDSA')
+        await jose.importJWK({ ...exportedJwk }, 'EdDSA', {
+          extractable: true
+        })
       )
       expect(josePublicJwk.x).toBe(exportedJwk.x)
       expect(josePublicJwk.d).toBe(exportedJwk.d)
 
       // the JWK `x` must be the true public key bytes (multibase minus header)
-      const decodedX = base64url.decode(exportedJwk.x as string)
+      const decodedX = base64url.decode(exportedJwk.x)
       const multibaseBytes = base58btc.decode(
-        (key.publicKeyMultibase as string).slice(1)
+        key.publicKeyMultibase.slice(1)
       )
       expect(bytesToHex(decodedX)).toBe(bytesToHex(multibaseBytes.slice(2)))
     })
 
-    it('round-trips through JsonWebKey2020 serialization', async () => {
+    it('emits a CID-spec JsonWebKey VM with a thumbprint id', async () => {
       const key = await Ed25519VerificationKey.from({
-        type: 'JsonWebKey2020',
+        type: 'JsonWebKey',
         controller: 'did:example:123',
-        publicKeyJwk
+        publicKeyJwk: rfcPublicKeyJwk,
+        secretKeyJwk: rfcSecretKeyJwk
       })
-      const exported = await key.toJsonWebKey2020()
-      const reimported = await Ed25519VerificationKey.from(exported)
-
-      expect(await reimported.toJsonWebKey2020()).toEqual(exported)
+      const exported = await key.toJsonWebKey()
+      expect(exported.type).toBe('JsonWebKey')
+      expect(exported.publicKeyJwk).toEqual(rfcPublicKeyJwk)
       // id is the JWK thumbprint encoded as a hash fragment of the controller
       expect(exported.id).toBe(
         `${exported.controller}#${await key.jwkThumbprint()}`
