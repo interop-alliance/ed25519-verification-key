@@ -1,5 +1,12 @@
 # @interop/ed25519-verification-key ChangeLog
 
+## Unreleased - TBD
+### Added
+- Document React Native usage in the README and declare
+  `react-native-get-random-values` as an optional `peerDependency`. The polyfill
+  supplies the `crypto.getRandomValues()` API that React Native lacks; consumers
+  must import it once at their app entry point.
+
 ## 7.0.1 - 2026-06-01
 ### Fixed
 - `fromKeyDocument()` now accepts a verification method document that carries

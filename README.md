@@ -10,6 +10,7 @@
 - [Background](#background)
 - [Security](#security)
 - [Install](#install)
+  - [React Native](#react-native)
 - [Usage](#usage)
 - [Serialization](#serialization)
 - [Contribute](#contribute)
@@ -47,6 +48,31 @@ git clone https://github.com/interop-alliance/ed25519-verification-key.git
 cd ed25519-verification-key
 pnpm install
 ```
+
+### React Native
+
+This library is isomorphic and runs on React Native, with one environment
+requirement: it uses the Web Crypto `crypto.getRandomValues()` API to generate
+key material, which React Native does not provide natively. Consumers must
+install the [`react-native-get-random-values`][] polyfill and import it
+**once**, before any `@interop/ed25519-verification-key` code runs (typically at
+the very top of your app entry, e.g. `index.js`):
+
+```sh
+npm install react-native-get-random-values
+```
+
+```js
+// must be the first import in your app entry
+import 'react-native-get-random-values'
+```
+
+It is declared as an optional `peerDependency`. No additional shim is needed for
+hashing -- SHA-256 is provided by the pure-JS [`@noble/hashes`][]
+implementation.
+
+[`react-native-get-random-values`]: https://github.com/LinusU/react-native-get-random-values
+[`@noble/hashes`]: https://github.com/paulmillr/noble-hashes
 
 ## Usage
 

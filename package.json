@@ -49,10 +49,18 @@
     "./dist/ed25519.js": "./dist/ed25519-reactnative.js"
   },
   "dependencies": {
-    "@interop/data-integrity-core": "^6.0.2",
+    "@interop/data-integrity-core": "^6.1.2",
     "@noble/ed25519": "^3.1.0",
     "@noble/hashes": "^2.2.0",
     "@scure/base": "^2.2.0"
+  },
+  "peerDependencies": {
+    "react-native-get-random-values": ">=1.8.0"
+  },
+  "peerDependenciesMeta": {
+    "react-native-get-random-values": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
