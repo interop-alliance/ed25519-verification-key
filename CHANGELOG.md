@@ -1,6 +1,6 @@
 # @interop/ed25519-verification-key ChangeLog
 
-## Unreleased - TBD
+## 7.0.2 - 2026-06-07
 ### Added
 - Document React Native usage in the README and declare
   `react-native-get-random-values` as an optional `peerDependency`. The polyfill
