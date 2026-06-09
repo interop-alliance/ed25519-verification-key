@@ -1,6 +1,6 @@
 # @interop/ed25519-verification-key ChangeLog
 
-## 8.0.0 - TBD
+## 8.0.0 - 2026-06-09
 ### Changed
 - **BREAKING**: `Ed25519VerificationKey.export()` is now `async` and returns
   `Promise<IMultikeyDocument>` (was a synchronous `IMultikeyDocument`), matching
