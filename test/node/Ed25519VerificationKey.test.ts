@@ -107,7 +107,7 @@ describe('Ed25519VerificationKey', () => {
         seed: seedBytes,
         controller: 'did:example:1234'
       })
-      const exported = keyPair.export({ publicKey: true, secretKey: true })
+      const exported = await keyPair.export({ publicKey: true, secretKey: true })
 
       expect(exported.type).toBe('Multikey')
       expect(exported['@context']).toBe('https://w3id.org/security/multikey/v1')
@@ -127,7 +127,7 @@ describe('Ed25519VerificationKey', () => {
         seed: seedBytes,
         controller: 'did:example:1234'
       })
-      const exported = keyPair.export({
+      const exported = await keyPair.export({
         publicKey: true,
         secretKey: true,
         canonicalize: true
@@ -145,7 +145,7 @@ describe('Ed25519VerificationKey', () => {
       const keyPair = await Ed25519VerificationKey.generate({
         id: 'did:ex:123#test-id'
       })
-      const exported = keyPair.export()
+      const exported = await keyPair.export()
 
       expect(Object.keys(exported).sort()).toEqual(
         ['@context', 'id', 'type', 'publicKeyMultibase'].sort()
@@ -240,7 +240,7 @@ describe('Ed25519VerificationKey', () => {
         controller: 'did:example:multikey'
       })
       // Export as Multikey (default 64-byte secret)
-      const multikeyDoc = keyPair.export({ publicKey: true, secretKey: true })
+      const multikeyDoc = await keyPair.export({ publicKey: true, secretKey: true })
       expect(multikeyDoc.type).toBe('Multikey')
 
       // Re-import via from()
@@ -281,7 +281,7 @@ describe('Ed25519VerificationKey', () => {
       const keyPair = await Ed25519VerificationKey.generate({
         controller: 'did:example:pubonly'
       })
-      const publicOnlyMultikey = keyPair.export({ publicKey: true })
+      const publicOnlyMultikey = await keyPair.export({ publicKey: true })
       expect('secretKeyMultibase' in publicOnlyMultikey).toBe(false)
 
       const imported = await Ed25519VerificationKey.from(publicOnlyMultikey)
@@ -295,7 +295,7 @@ describe('Ed25519VerificationKey', () => {
       const keyPair = await Ed25519VerificationKey.generate({
         controller: 'did:example:multikey-ctx'
       })
-      const document = keyPair.export({ publicKey: true, includeContext: true })
+      const document = await keyPair.export({ publicKey: true, includeContext: true })
       expect(document['@context']).toBe(
         'https://w3id.org/security/multikey/v1'
       )
@@ -324,7 +324,7 @@ describe('Ed25519VerificationKey', () => {
       const keyPair = await Ed25519VerificationKey.generate({
         controller: 'did:example:no-ctx'
       })
-      const document = keyPair.export({ publicKey: true, includeContext: true })
+      const document = await keyPair.export({ publicKey: true, includeContext: true })
       document['@context'] = 'https://example.com/unknown/v1'
 
       await expect(
@@ -336,7 +336,7 @@ describe('Ed25519VerificationKey', () => {
       const keyPair = await Ed25519VerificationKey.generate({
         controller: 'did:example:revoked'
       })
-      const document = keyPair.export({ publicKey: true, includeContext: true })
+      const document = await keyPair.export({ publicKey: true, includeContext: true })
       document.revoked = '2020-12-17T05:00:00Z'
 
       await expect(
