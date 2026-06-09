@@ -240,7 +240,6 @@ There is a Multikey-default `export()` plus a `to<Format>()` family:
 |-----------------------------------|-----------------------------------------------------|
 | `export()`                        | **Multikey** (`type: 'Multikey'`, multikey context) |
 | `toVerificationKey2020()`         | `Ed25519VerificationKey2020`                         |
-| `toEd255519VerificationKey2018()` | `Ed25519VerificationKey2018`                         |
 | `toJwk()`                         | JWK (RFC 8037)                                       |
 | `toJsonWebKey2020()`              | `JsonWebKey2020`                                     |
 

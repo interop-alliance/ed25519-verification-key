@@ -1,5 +1,18 @@
 # @interop/ed25519-verification-key ChangeLog
 
+## 8.0.0 - TBD
+### Changed
+- **BREAKING**: `Ed25519VerificationKey.export()` is now `async` and returns
+  `Promise<IMultikeyDocument>` (was a synchronous `IMultikeyDocument`), matching
+  the now-`async` `AbstractKeyPair.export()` base method. Callers must
+  `await keyPair.export(...)`. The method body is unchanged; only the return type
+  is wrapped in a `Promise`.
+- Require `@interop/data-integrity-core` `^7.0.0` (which makes the base
+  `export()` async).
+### Removed
+- **BREAKING**: Removed the `toEd255519VerificationKey2018()` instance method.
+  Use `export()` (Multikey) or `toVerificationKey2020()` for serialization.
+
 ## 7.0.2 - 2026-06-07
 ### Added
 - Document React Native usage in the README and declare
