@@ -1,5 +1,10 @@
 # @interop/ed25519-verification-key ChangeLog
 
+## 8.0.1 -
+
+### Changed
+- Update to `@interop/data-integrity-core@8.0.0`.
+
 ## 8.0.0 - 2026-06-09
 ### Changed
 - **BREAKING**: `Ed25519VerificationKey.export()` is now `async` and returns
