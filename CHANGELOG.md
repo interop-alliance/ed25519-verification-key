@@ -1,6 +1,6 @@
 # @interop/ed25519-verification-key ChangeLog
 
-## 8.0.3 -
+## 8.0.3 - 2026-07-17
 
 ### Changed
 - Update to `@interop/data-integrity-core@8.3.0`.
