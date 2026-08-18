@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@interop/data-integrity-core':
-        specifier: ^8.3.0
-        version: 8.3.0
+        specifier: ^8.7.1
+        version: 8.7.1
       '@noble/ed25519':
         specifier: ^3.1.0
         version: 3.1.0
@@ -218,8 +218,8 @@ packages:
     resolution: {integrity: sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ==}
     engines: {node: '>=18.18'}
 
-  '@interop/data-integrity-core@8.3.0':
-    resolution: {integrity: sha512-8rYHqCHbYub8hh16HvQrJ8ozXHhv+t/gC0f6/JN9CLOdyL3EUTZOyKHjOKDRaelxjIplQG61LIUxGL3ihF1aXQ==}
+  '@interop/data-integrity-core@8.7.1':
+    resolution: {integrity: sha512-KD/AFAfnsDVa7Kz3yzx0t/L1A+GlFI0RahbtXsfzcznRlN63fPZCJ6W3C+unPyksCYsILZIHcOFFJkZe6eKtkw==}
     engines: {node: '>=24.0'}
 
   '@isaacs/ttlcache@1.4.1':
@@ -433,6 +433,9 @@ packages:
 
   '@scure/base@2.2.0':
     resolution: {integrity: sha512-b8XEupJibegiXV+tDUseI8oLQc8ei3d/4Jkb2RpbHh3MfE054ov3uIz2dhFkB3FI8iwYkEh0gGCApkrYggkPNg==}
+
+  '@scure/base@2.3.0':
+    resolution: {integrity: sha512-NsG6Y03tY6R5BUis4FdVtHVkur0U6FOzskgs9ZXNl78CUc9fkZ78HmENUle1nSOkCasDmbubmWD9qwB7mm4PZA==}
 
   '@sinclair/typebox@0.27.12':
     resolution: {integrity: sha512-hhyNJ+nbR6ZR7pToHvllEFun9TL0sbL+tk/ON75lo+Xas054uez98qRbsuNt7MBCyZKK4+8Yli/OAGZhmfBZ/g==}
@@ -1994,7 +1997,9 @@ snapshots:
 
   '@humanwhocodes/retry@0.4.3': {}
 
-  '@interop/data-integrity-core@8.3.0': {}
+  '@interop/data-integrity-core@8.7.1':
+    dependencies:
+      '@scure/base': 2.3.0
 
   '@isaacs/ttlcache@1.4.1': {}
 
@@ -2174,6 +2179,8 @@ snapshots:
   '@rolldown/pluginutils@1.0.1': {}
 
   '@scure/base@2.2.0': {}
+
+  '@scure/base@2.3.0': {}
 
   '@sinclair/typebox@0.27.12': {}
 
