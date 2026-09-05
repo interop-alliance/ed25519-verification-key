@@ -1,8 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-test('Ed25519VerificationKey generates keys in browser', async ({
-  page
-}) => {
+test('Ed25519VerificationKey generates keys in browser', async ({ page }) => {
   await page.goto('/test/index.html')
   const result = await page.evaluate(async () => {
     const { Ed25519VerificationKey } = await import('/src/index.ts')

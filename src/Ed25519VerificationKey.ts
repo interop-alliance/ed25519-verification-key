@@ -21,6 +21,10 @@ import {
   type IVerificationResult,
   type IVerifier
 } from '@interop/data-integrity-core'
+import {
+  decodeMultikey,
+  MultikeyCodec
+} from '@interop/data-integrity-core/multihash'
 
 import { base58btc, base64url } from './baseX.js'
 import ed25519 from './ed25519.js'
@@ -104,7 +108,7 @@ export class Ed25519VerificationKey extends AbstractKeyPair {
       throw new TypeError('The "publicKeyMultibase" property is required.')
     }
 
-    if (!_isValidKeyHeader(publicKeyMultibase, MULTICODEC_ED25519_PUB_HEADER)) {
+    if (!_isValidKeyHeader(publicKeyMultibase, MultikeyCodec.ED25519_PUB)) {
       throw new TypeError(
         '"publicKeyMultibase" has invalid header bytes: ' +
           `"${publicKeyMultibase}".`
@@ -113,7 +117,7 @@ export class Ed25519VerificationKey extends AbstractKeyPair {
 
     if (
       privateKeyMultibase &&
-      !_isValidKeyHeader(privateKeyMultibase, MULTICODEC_ED25519_PRIV_HEADER)
+      !_isValidKeyHeader(privateKeyMultibase, MultikeyCodec.ED25519_PRIV)
     ) {
       throw new Error('"privateKeyMultibase" has invalid header bytes.')
     }
@@ -169,7 +173,9 @@ export class Ed25519VerificationKey extends AbstractKeyPair {
       }
     }
     if (checkRevoked && (document.revoked ?? '') !== '') {
-      throw new Error(`Key has been revoked since: "${document.revoked ?? ''}".`)
+      throw new Error(
+        `Key has been revoked since: "${document.revoked ?? ''}".`
+      )
     }
     return Ed25519VerificationKey.from(document as IKeyPair | IPublicKey)
   }
@@ -223,7 +229,7 @@ export class Ed25519VerificationKey extends AbstractKeyPair {
    */
   static fromMultikey(options: IMultikeyDocument): Ed25519VerificationKey {
     const { id, controller, publicKeyMultibase, revoked } = options
-    if (!_isValidKeyHeader(publicKeyMultibase, MULTICODEC_ED25519_PUB_HEADER)) {
+    if (!_isValidKeyHeader(publicKeyMultibase, MultikeyCodec.ED25519_PUB)) {
       throw new TypeError(
         '"publicKeyMultibase" has invalid header bytes: ' +
           `"${publicKeyMultibase}".`
@@ -233,30 +239,38 @@ export class Ed25519VerificationKey extends AbstractKeyPair {
     let privateKeyMultibase: string | undefined
     if ('secretKeyMultibase' in options) {
       const { secretKeyMultibase } = options
-      if (!_isValidKeyHeader(secretKeyMultibase, MULTICODEC_ED25519_PRIV_HEADER)) {
-        throw new Error('"secretKeyMultibase" has invalid header bytes.')
+      let secretBytes: Uint8Array
+      try {
+        ;({ keyBytes: secretBytes } = decodeMultikey({
+          multikey: secretKeyMultibase,
+          expectedCodec: MultikeyCodec.ED25519_PRIV
+        }))
+      } catch (err: any) {
+        throw new Error('"secretKeyMultibase" has invalid header bytes.', {
+          cause: err
+        })
       }
-      // decode the secret, stripping the multibase 'z' prefix and multicodec header
-      const secretMulticodec = base58btc.decode(secretKeyMultibase.slice(1))
-      const secretBytes = secretMulticodec.slice(MULTICODEC_ED25519_PRIV_HEADER.length)
 
       if (secretBytes.length === 32) {
         // Canonical 32-byte Multikey secret (seed only). Re-concatenate with the
         // public key bytes to rebuild the 64-byte seed||pub buffer that the sign
         // path requires.
-        const pubMulticodec = base58btc.decode(publicKeyMultibase.slice(1))
-        const publicKeyBytes = pubMulticodec.slice(MULTICODEC_ED25519_PUB_HEADER.length)
+        const { keyBytes: publicKeyBytes } = decodeMultikey({
+          multikey: publicKeyMultibase,
+          expectedCodec: MultikeyCodec.ED25519_PUB
+        })
         const combinedBytes = new Uint8Array(64)
         combinedBytes.set(secretBytes)
         combinedBytes.set(publicKeyBytes, 32)
-        privateKeyMultibase = _encodeMbKey(MULTICODEC_ED25519_PRIV_HEADER, combinedBytes)
-      } else if (secretBytes.length === 64) {
-        // Legacy 64-byte Multikey secret (seed||pub) — pass through as-is.
-        privateKeyMultibase = secretKeyMultibase
-      } else {
-        throw new Error(
-          `Invalid secret key length: expected 32 or 64 bytes, got ${secretBytes.length}.`
+        privateKeyMultibase = _encodeMbKey(
+          MULTICODEC_ED25519_PRIV_HEADER,
+          combinedBytes
         )
+      } else {
+        // Legacy 64-byte Multikey secret (seed||pub) -- pass through as-is.
+        // decodeMultikey only accepts 32 or 64 bytes for this codec, so this
+        // branch is exactly the 64-byte case.
+        privateKeyMultibase = secretKeyMultibase
       }
     }
 
@@ -288,8 +302,8 @@ export class Ed25519VerificationKey extends AbstractKeyPair {
       throw new Error('keyPair.publicKeyBase58 property is required.')
     }
     const publicKeyMultibase = _encodeMbKey(
-        MULTICODEC_ED25519_PUB_HEADER,
-        base58btc.decode(keyPair.publicKeyBase58)
+      MULTICODEC_ED25519_PUB_HEADER,
+      base58btc.decode(keyPair.publicKeyBase58)
     )
     const newKeyPair = new Ed25519VerificationKey({
       id: keyPair.id,
@@ -433,16 +447,12 @@ export class Ed25519VerificationKey extends AbstractKeyPair {
     if (!this.publicKeyMultibase) {
       return
     }
-    // remove multibase header
-    const publicKeyMulticodec = base58btc.decode(
-      this.publicKeyMultibase.slice(1)
-    )
-    // remove multicodec header
-    const publicKeyBytes = publicKeyMulticodec.slice(
-      MULTICODEC_ED25519_PUB_HEADER.length
-    )
+    const { keyBytes } = decodeMultikey({
+      multikey: this.publicKeyMultibase,
+      expectedCodec: MultikeyCodec.ED25519_PUB
+    })
 
-    return publicKeyBytes
+    return keyBytes
   }
 
   /**
@@ -452,16 +462,12 @@ export class Ed25519VerificationKey extends AbstractKeyPair {
     if (!this.privateKeyMultibase) {
       return
     }
-    // remove multibase header
-    const privateKeyMulticodec = base58btc.decode(
-      this.privateKeyMultibase.slice(1)
-    )
-    // remove multicodec header
-    const privateKeyBytes = privateKeyMulticodec.slice(
-      MULTICODEC_ED25519_PRIV_HEADER.length
-    )
+    const { keyBytes } = decodeMultikey({
+      multikey: this.privateKeyMultibase,
+      expectedCodec: MultikeyCodec.ED25519_PRIV
+    })
 
-    return privateKeyBytes
+    return keyBytes
   }
 
   /**
@@ -601,19 +607,13 @@ export class Ed25519VerificationKey extends AbstractKeyPair {
    * @returns {{kty: string, crv: string, x: string, d: string}} JWK
    *   representation.
    */
-  toJwk(options: {
-    publicKey?: boolean
-    privateKey: true
-  }): IOKPSecretJWK
-  toJwk(options?: {
-    publicKey?: boolean
-    privateKey?: false
-  }): IOKPPublicJWK
+  toJwk(options: { publicKey?: boolean; privateKey: true }): IOKPSecretJWK
+  toJwk(options?: { publicKey?: boolean; privateKey?: false }): IOKPPublicJWK
   toJwk({
     publicKey = true,
     privateKey = false
   }: { publicKey?: boolean; privateKey?: boolean } = {}):
-      IOKPPublicJWK | IOKPSecretJWK {
+    IOKPPublicJWK | IOKPSecretJWK {
     if (!(publicKey || privateKey)) {
       throw new TypeError('Either a "publicKey" or a "privateKey" is required.')
     }
@@ -702,26 +702,23 @@ export class Ed25519VerificationKey extends AbstractKeyPair {
       throw new TypeError('Public key buffer is not set.')
     }
 
-    let fingerprintBuffer
+    let fingerprintKeyBytes: Uint8Array
     try {
-      fingerprintBuffer = base58btc.decode(fingerprint.slice(1))
-      if (!fingerprintBuffer) {
-        throw new TypeError('Invalid encoding of fingerprint.')
-      }
-    } catch (e: any) {
-      return { error: e, verified: false } as IVerificationResult
+      ;({ keyBytes: fingerprintKeyBytes } = decodeMultikey({
+        multikey: fingerprint,
+        expectedCodec: MultikeyCodec.ED25519_PUB
+      }))
+    } catch (err: any) {
+      return {
+        error: new Error(
+          'Invalid fingerprint encoding (expecting 0xed01 byte prefix).',
+          { cause: err }
+        ),
+        verified: false
+      } as IVerificationResult
     }
 
-    const buffersEqual = _isEqualBuffer(
-      this._publicKeyBuffer,
-      fingerprintBuffer.slice(2)
-    )
-
-    // validate the first two multicodec bytes
-    const verified =
-      fingerprintBuffer[0] === MULTICODEC_ED25519_PUB_HEADER[0] &&
-      fingerprintBuffer[1] === MULTICODEC_ED25519_PUB_HEADER[1] &&
-      buffersEqual
+    const verified = _isEqualBuffer(this._publicKeyBuffer, fingerprintKeyBytes)
     if (!verified) {
       return {
         error: new Error(
@@ -784,22 +781,21 @@ function _isEqualBuffer(buf1: Uint8Array, buf2: Uint8Array): boolean {
   return true
 }
 
-// check a multibase key for an expected header
+// check a multibase key for an expected multicodec codec and key length
 function _isValidKeyHeader(
   multibaseKey: string,
-  expectedHeader: Uint8Array
+  expectedCodec: MultikeyCodec
 ): boolean {
-  if (
-    !(
-      typeof multibaseKey === 'string' &&
-      multibaseKey[0] === MULTIBASE_BASE58BTC_HEADER
-    )
-  ) {
+  if (typeof multibaseKey !== 'string') {
     return false
   }
 
-  const keyBytes = base58btc.decode(multibaseKey.slice(1))
-  return expectedHeader.every((val, i) => keyBytes[i] === val)
+  try {
+    decodeMultikey({ multikey: multibaseKey, expectedCodec })
+    return true
+  } catch {
+    return false
+  }
 }
 
 // encode a multibase base58-btc multicodec key

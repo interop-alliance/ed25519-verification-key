@@ -150,17 +150,17 @@ function privateKeyDerEncode({
   if (!(privateKeyBytes != null || seedBytes != null)) {
     throw new TypeError('`privateKeyBytes` or `seedBytes` is required.')
   }
-  if(seedBytes && !privateKeyBytes) {
+  if (seedBytes && !privateKeyBytes) {
     assertKeyBytes({
       bytes: seedBytes,
       expectedLength: 32
-    });
+    })
   }
-  if(privateKeyBytes && !seedBytes) {
+  if (privateKeyBytes && !seedBytes) {
     assertKeyBytes({
       bytes: privateKeyBytes,
       expectedLength: 64
-    });
+    })
   }
   if (
     seedBytes == null &&
@@ -195,6 +195,6 @@ function publicKeyDerEncode(publicKeyBytes: Uint8Array): Buffer {
     bytes: publicKeyBytes,
     expectedLength: 32,
     code: 'invalidPublicKeyLength'
-  });
+  })
   return Buffer.concat([DER_PUBLIC_KEY_PREFIX, publicKeyBytes])
 }

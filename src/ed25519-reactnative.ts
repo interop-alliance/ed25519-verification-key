@@ -30,10 +30,7 @@ export default {
 
   generateKeyPairFromSeed,
 
-  async sign(
-    secretKey: Uint8Array,
-    data: Uint8Array
-  ): Promise<Uint8Array> {
+  async sign(secretKey: Uint8Array, data: Uint8Array): Promise<Uint8Array> {
     return ed25519.signAsync(data, secretKey.slice(0, 32))
   },
 

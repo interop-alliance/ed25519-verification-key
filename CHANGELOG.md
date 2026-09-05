@@ -1,5 +1,14 @@
 # @interop/ed25519-verification-key ChangeLog
 
+## 8.1.0 - TBD
+
+### Changed
+- Route multikey header, codec, and length checks through
+  `decodeMultikey()`/`MultikeyCodec` from `@interop/data-integrity-core/multihash`
+  instead of hand-rolled base58 slicing. This closes gaps in the previous
+  validation, which checked the header bytes but not the key length or the
+  multibase `z` prefix on every path.
+
 ## 8.0.4 - 2026-08-18
 
 ### Changed

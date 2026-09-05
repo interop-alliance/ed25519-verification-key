@@ -7,10 +7,7 @@ import { base58btc, base64url } from '../../src/baseX.js'
 import { mockKey, seed, suites } from './mock-data.js'
 import * as multibase from 'multibase'
 import * as multicodec from 'multicodec'
-import type {
-  IOkpPublicJwk,
-  IOkpSecretJwk
-} from '@interop/data-integrity-core'
+import type { IOkpPublicJwk, IOkpSecretJwk } from '@interop/data-integrity-core'
 import { Ed25519VerificationKey } from '../../src/index.js'
 
 function bytesToHex(bytes: Uint8Array): string {
@@ -107,7 +104,10 @@ describe('Ed25519VerificationKey', () => {
         seed: seedBytes,
         controller: 'did:example:1234'
       })
-      const exported = await keyPair.export({ publicKey: true, secretKey: true })
+      const exported = await keyPair.export({
+        publicKey: true,
+        secretKey: true
+      })
 
       expect(exported.type).toBe('Multikey')
       expect(exported['@context']).toBe('https://w3id.org/security/multikey/v1')
@@ -117,7 +117,9 @@ describe('Ed25519VerificationKey', () => {
       )
       // default (non-canonical) secretKeyMultibase is 66 bytes (2 header + 64
       // seed||pub), matching @digitalbazaar/ed25519-multikey
-      const secretMulticodec = base58btc.decode(exported.secretKeyMultibase!.slice(1))
+      const secretMulticodec = base58btc.decode(
+        exported.secretKeyMultibase!.slice(1)
+      )
       expect(secretMulticodec.length).toBe(66)
     })
 
@@ -134,7 +136,9 @@ describe('Ed25519VerificationKey', () => {
       })
 
       // canonical secretKeyMultibase is 34 bytes (2 header + 32 seed)
-      const secretMulticodec = base58btc.decode(exported.secretKeyMultibase!.slice(1))
+      const secretMulticodec = base58btc.decode(
+        exported.secretKeyMultibase!.slice(1)
+      )
       expect(secretMulticodec.length).toBe(34)
       expect(exported.secretKeyMultibase).toBe(
         'z3u2V1vM4u3wUmcB8M77WQWmMvscQpPAtdpj7iEJRGpzoMtg'
@@ -153,7 +157,6 @@ describe('Ed25519VerificationKey', () => {
       expect(exported.id).toBe('did:ex:123#test-id')
       expect(exported.type).toBe('Multikey')
     })
-
   })
 
   describe('toVerificationKey2020', () => {
@@ -174,7 +177,14 @@ describe('Ed25519VerificationKey', () => {
       })
 
       expect(Object.keys(exported).sort()).toEqual(
-        ['id', 'type', 'controller', 'publicKeyMultibase', 'privateKeyMultibase', 'revoked'].sort()
+        [
+          'id',
+          'type',
+          'controller',
+          'publicKeyMultibase',
+          'privateKeyMultibase',
+          'revoked'
+        ].sort()
       )
 
       expect(exported.controller).toBe('did:example:1234')
@@ -240,7 +250,10 @@ describe('Ed25519VerificationKey', () => {
         controller: 'did:example:multikey'
       })
       // Export as Multikey (default 64-byte secret)
-      const multikeyDoc = await keyPair.export({ publicKey: true, secretKey: true })
+      const multikeyDoc = await keyPair.export({
+        publicKey: true,
+        secretKey: true
+      })
       expect(multikeyDoc.type).toBe('Multikey')
 
       // Re-import via from()
@@ -267,7 +280,9 @@ describe('Ed25519VerificationKey', () => {
         publicKeyMultibase: keyPair.publicKeyMultibase,
         secretKeyMultibase: keyPair.privateKeyMultibase!
       }
-      const secretMulticodec = base58btc.decode(legacyMultikey.secretKeyMultibase.slice(1))
+      const secretMulticodec = base58btc.decode(
+        legacyMultikey.secretKeyMultibase.slice(1)
+      )
       expect(secretMulticodec.length).toBe(66) // 2 header + 64
 
       const imported = await Ed25519VerificationKey.from(legacyMultikey)
@@ -295,12 +310,15 @@ describe('Ed25519VerificationKey', () => {
       const keyPair = await Ed25519VerificationKey.generate({
         controller: 'did:example:multikey-ctx'
       })
-      const document = await keyPair.export({ publicKey: true, includeContext: true })
-      expect(document['@context']).toBe(
-        'https://w3id.org/security/multikey/v1'
-      )
+      const document = await keyPair.export({
+        publicKey: true,
+        includeContext: true
+      })
+      expect(document['@context']).toBe('https://w3id.org/security/multikey/v1')
 
-      const imported = await Ed25519VerificationKey.fromKeyDocument({ document })
+      const imported = await Ed25519VerificationKey.fromKeyDocument({
+        document
+      })
       expect(imported.publicKeyMultibase).toBe(keyPair.publicKeyMultibase)
     })
 
@@ -316,7 +334,9 @@ describe('Ed25519VerificationKey', () => {
         'https://w3id.org/security/suites/ed25519-2020/v1'
       )
 
-      const imported = await Ed25519VerificationKey.fromKeyDocument({ document })
+      const imported = await Ed25519VerificationKey.fromKeyDocument({
+        document
+      })
       expect(imported.publicKeyMultibase).toBe(keyPair.publicKeyMultibase)
     })
 
@@ -324,7 +344,10 @@ describe('Ed25519VerificationKey', () => {
       const keyPair = await Ed25519VerificationKey.generate({
         controller: 'did:example:no-ctx'
       })
-      const document = await keyPair.export({ publicKey: true, includeContext: true })
+      const document = await keyPair.export({
+        publicKey: true,
+        includeContext: true
+      })
       document['@context'] = 'https://example.com/unknown/v1'
 
       await expect(
@@ -336,7 +359,10 @@ describe('Ed25519VerificationKey', () => {
       const keyPair = await Ed25519VerificationKey.generate({
         controller: 'did:example:revoked'
       })
-      const document = await keyPair.export({ publicKey: true, includeContext: true })
+      const document = await keyPair.export({
+        publicKey: true,
+        includeContext: true
+      })
       document.revoked = '2020-12-17T05:00:00Z'
 
       await expect(
@@ -535,8 +561,9 @@ describe('Ed25519VerificationKey', () => {
         secretKeyJwk: rfcSecretKeyJwk
       })
       expect(key.toJwk({ publicKey: true })).toEqual(rfcPublicKeyJwk)
-      expect(key.toJwk({ publicKey: true, privateKey: true }))
-        .toEqual(rfcSecretKeyJwk)
+      expect(key.toJwk({ publicKey: true, privateKey: true })).toEqual(
+        rfcSecretKeyJwk
+      )
     })
 
     it('preserves id and controller when importing a JWK', async () => {
@@ -607,9 +634,7 @@ describe('Ed25519VerificationKey', () => {
 
       // the JWK `x` must be the true public key bytes (multibase minus header)
       const decodedX = base64url.decode(exportedJwk.x)
-      const multibaseBytes = base58btc.decode(
-        key.publicKeyMultibase.slice(1)
-      )
+      const multibaseBytes = base58btc.decode(key.publicKeyMultibase.slice(1))
       expect(bytesToHex(decodedX)).toBe(bytesToHex(multibaseBytes.slice(2)))
     })
 

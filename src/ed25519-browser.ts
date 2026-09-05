@@ -11,7 +11,9 @@ if (typeof crypto.getRandomValues === 'undefined') {
 
 // configure sha512 for noble/ed25519 v3 using WebCrypto
 ed25519.hashes.sha512Async = async (msg: Uint8Array) =>
-  new Uint8Array(await crypto.subtle.digest('SHA-512', msg as unknown as BufferSource))
+  new Uint8Array(
+    await crypto.subtle.digest('SHA-512', msg as unknown as BufferSource)
+  )
 
 interface EdKeyPair {
   publicKey: Uint8Array
@@ -29,10 +31,7 @@ export default {
 
   generateKeyPairFromSeed,
 
-  async sign(
-    secretKey: Uint8Array,
-    data: Uint8Array
-  ): Promise<Uint8Array> {
+  async sign(secretKey: Uint8Array, data: Uint8Array): Promise<Uint8Array> {
     return ed25519.signAsync(data, secretKey.slice(0, 32))
   },
 

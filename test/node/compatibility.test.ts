@@ -2,10 +2,7 @@
  * Copyright (c) 2020 Digital Bazaar, Inc. All rights reserved.
  */
 import { describe, it, expect } from 'vitest'
-import type {
-  IOkpPublicJwk,
-  IOkpSecretJwk
-} from '@interop/data-integrity-core'
+import type { IOkpPublicJwk, IOkpSecretJwk } from '@interop/data-integrity-core'
 import { Ed25519VerificationKey } from '../../src/index.js'
 import * as jose from 'jose'
 
