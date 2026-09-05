@@ -1,6 +1,6 @@
 # @interop/ed25519-verification-key ChangeLog
 
-## 8.1.0 - TBD
+## 8.1.0 - 2026-09-05
 
 ### Changed
 - Route multikey header, codec, and length checks through
