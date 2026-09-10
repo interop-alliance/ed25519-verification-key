@@ -1,5 +1,14 @@
 # @interop/ed25519-verification-key ChangeLog
 
+## 8.2.0 - TBD
+
+### Added
+- `didKeySigner()`: a signer for the key pair named under its own `did:key`
+  (`did:key:<publicKeyMultibase>#<publicKeyMultibase>`), regardless of the key
+  pair's `id` and `controller`, which it leaves unmodified. A key generated from
+  a seed can sign without an id being set first, and a key loaded under another
+  DID can still sign as its bare did:key.
+
 ## 8.1.0 - 2026-09-05
 
 ### Changed

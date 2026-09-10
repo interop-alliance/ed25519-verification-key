@@ -193,6 +193,23 @@ const data = (new TextEncoder()).encode('test data goes here');
 const signatureValueBytes = await sign({data});
 ```
 
+### Signing under the key's own did:key
+
+`signer()` names the signature by the key pair's `id`, and throws when none is
+set. `didKeySigner()` instead names it under the key's own `did:key`
+(`did:key:<publicKeyMultibase>#<publicKeyMultibase>`), whatever `id` or
+`controller` the key pair carries, and leaves the key pair unmodified. Use it
+for a key that must sign as its bare did:key: a key generated from a seed with
+no id set, or a key loaded under another DID's verification method.
+
+```js
+const keyPair = await Ed25519VerificationKey.generate({ seed });
+
+const signer = keyPair.didKeySigner();
+// signer.id === `did:key:${keyPair.publicKeyMultibase}#${keyPair.publicKeyMultibase}`
+const signatureValueBytes = await signer.sign({ data });
+```
+
 ### Creating a verifier function
 
 In order to verify a cryptographic signature, you need to create a `verify`

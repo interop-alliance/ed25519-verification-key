@@ -731,12 +731,30 @@ export class Ed25519VerificationKey extends AbstractKeyPair {
   }
 
   signer(): ISigner {
-    const privateKeyBuffer = this._privateKeyBuffer
-
     if (!this.id) {
       throw new Error('A signer() requires a key id to be set.')
     }
+    return this._signerWithId(this.id)
+  }
 
+  /**
+   * Returns a signer for this key identified under the key's own `did:key`,
+   * whatever `id` and `controller` the key pair itself carries: the signer's
+   * `id` is `did:key:<publicKeyMultibase>#<publicKeyMultibase>`. The key pair
+   * is not modified, so a key loaded under another DID's verification method
+   * can still sign as its bare did:key (a did:webvh update key, a wallet
+   * record signer, a test fixture), and a key generated from a seed needs no
+   * id set before it can sign.
+   *
+   * @returns {ISigner} The signer, named by the key's did:key.
+   */
+  didKeySigner(): ISigner {
+    const fingerprint = this.fingerprint()
+    return this._signerWithId(`did:key:${fingerprint}#${fingerprint}`)
+  }
+
+  private _signerWithId(id: string): ISigner {
+    const privateKeyBuffer = this._privateKeyBuffer
     return {
       algorithm: 'Ed25519',
       async sign({ data }) {
@@ -745,7 +763,7 @@ export class Ed25519VerificationKey extends AbstractKeyPair {
         }
         return ed25519.sign(privateKeyBuffer, data)
       },
-      id: this.id
+      id
     }
   }
 
