@@ -1,6 +1,6 @@
 # @interop/ed25519-verification-key ChangeLog
 
-## 8.2.0 - TBD
+## 8.2.0 - 2026-09-10
 
 ### Added
 - `didKeySigner()`: a signer for the key pair named under its own `did:key`
