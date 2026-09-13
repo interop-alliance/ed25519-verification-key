@@ -193,6 +193,9 @@ const data = (new TextEncoder()).encode('test data goes here');
 const signatureValueBytes = await sign({data});
 ```
 
+To sign as a `did:key`, call `didKeySigner()` (below). Do not set `id` and
+`controller` on the key pair by hand just to call `signer()`.
+
 ### Signing under the key's own did:key
 
 `signer()` names the signature by the key pair's `id`, and throws when none is

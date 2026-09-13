@@ -730,6 +730,13 @@ export class Ed25519VerificationKey extends AbstractKeyPair {
     return { verified } as IVerificationResult
   }
 
+  /**
+   * Returns a signer named by the key pair's `id`. Throws when no `id` is set.
+   * To sign as the key's own `did:key`, use {@link didKeySigner} instead of
+   * setting `id` and `controller` by hand.
+   *
+   * @returns {ISigner} The signer, named by the key pair's `id`.
+   */
   signer(): ISigner {
     if (!this.id) {
       throw new Error('A signer() requires a key id to be set.')
