@@ -1,6 +1,6 @@
 # @interop/ed25519-verification-key ChangeLog
 
-## 8.2.2 - TBD
+## 8.2.2 - 2026-10-12
 
 ### Changed
 - Update to latest `@interop/data-integrity-core@8.9.0` (verification method error).
